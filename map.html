@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carte des Fontaines - Bruxelles</title>
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        /* Ajustements pour la carte */
+        #map {
+            height: 500px;
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            margin: 20px 0;
+            z-index: 1; /* S'assure que la carte reste sous le menu si besoin */
+        }
+        
+        .map-header {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        /* Style des popups Leaflet pour matcher votre design */
+        .leaflet-popup-content-wrapper {
+            font-family: Arial, sans-serif;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Bruxelles Tourisme</h1>
+        <nav>
+            <a href="index.html">Accueil</a>
+            <a href="#">Infos</a>
+            <a href="map.html">Carte</a>
+            <a href="#contact">Contact</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="map-header">
+            <h2>Points d'eau potable</h2>
+            <p>Voici les fontaines gratuites gérées par la Ville de Bruxelles dans un rayon de 1 km autour de la Grand-Place.</p>
+        </section>
+
+        <div id="map"></div>
+
+        <section class="info">
+            <h2>Légende</h2>
+            <ul>
+                <li><strong>📍 Marqueur Bleu :</strong> La Grand-Place de Bruxelles</li>
+                <li><strong>🔵 Cercles :</strong> Fontaines d'eau potable disponibles</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Bruxelles Tourisme - Données : Open Data Ville de Bruxelles</p>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // Coordonnées de la Grand-Place (Centre de recherche)
+        const lat = 50.8467;
+        const lon = 4.3524;
+
+        // 1. Initialisation de la carte
+        const map = L.map('map').setView([lat, lon], 15);
+
+        // 2. Ajout du fond de carte OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // 3. Marqueur spécial pour la Grand-Place
+        L.marker([lat, lon])
+            .addTo(map)
+            .bindPopup("<b>Vous êtes ici : Grand-Place</b>")
+            .openPopup();
+
+        // 4. Récupération des données via l'API
+        const apiUrl = `https://bruxellesdata.opendatasoft.com/api/explore/v2.1/catalog/datasets/fontaines-d-eau-potable-gerees-par-la-ville-de-bruxelles/records?where=within_distance(geo_point_2d%2C%20geom'POINT(${lon}%20${lat})'%2C%201km)&limit=20`;
+
+        fetch(apiUrl)
+            .then(response => {
+                if (!response.ok) throw new Error("Erreur réseau");
+                return response.json();
+            })
+            .then(data => {
+                // Parcours des résultats de l'API
+                data.results.forEach(fountain => {
+                    const fLat = fountain.geo_point_2d.lat;
+                    const fLon = fountain.geo_point_2d.lon;
+                    const nom = fountain.nom_fr || "Fontaine d'eau";
+                    const adresse = fountain.adresse_fr || "Bruxelles";
+
+                    // Ajout d'un marqueur circulaire pour chaque fontaine
+                    L.circleMarker([fLat, fLon], {
+                        radius: 8,
+                        fillColor: "#2c66c3", // Bleu de votre header
+                        color: "#fff",
+                        weight: 2,
+                        fillOpacity: 0.8
+                    })
+                    .addTo(map)
+                    .bindPopup(`<strong>💧 ${nom}</strong><br>${adresse}`);
+                });
+            })
+            .catch(error => {
+                console.error("Erreur lors de la récupération des données :", error);
+            });
+    </script>
+
+</body>
+</html>
